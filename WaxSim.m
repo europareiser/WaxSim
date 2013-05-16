@@ -20,8 +20,8 @@ int main(int argc, char *argv[]) {
 	NSMutableDictionary *environment = [NSMutableDictionary dictionary];
 	NSString *environment_variable;
 	NSArray *environment_variable_parts;
-    
-    while ((c = getopt(argc, argv, "e:s:f:v:ah")) != -1) {
+  BOOL quit = NO;
+    while ((c = getopt(argc, argv, "e:s:f:v:ahq")) != -1) {
         switch(c) {
 			case 'e':
 				environment_variable = [NSString stringWithCString:optarg encoding:NSUTF8StringEncoding];
@@ -58,6 +58,9 @@ int main(int argc, char *argv[]) {
                 }
                 return 1;
                 break;
+          case 'q':
+            quit = YES;
+            break;
             default:
                 abort ();
         }
@@ -87,7 +90,20 @@ int main(int argc, char *argv[]) {
     Simulator *simulator = [[Simulator alloc] initWithAppPath:appPathString sdk:sdkString family:familyString video:videoPathString env:environment args:additionalArgs];
     [simulator launch];
 
+  if (quit) {
+    int64_t delayInSeconds = 3.0f;
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void) {
+      [simulator end];
+    });
+
+    [[NSRunLoop mainRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:4.0]];
+  }
+  else
+  {
     [[NSRunLoop mainRunLoop] run];
+  }
+
     return 0;
 }
 
@@ -95,12 +111,13 @@ void printUsage() {
     fprintf(stderr, "usage: waxsim [options] app-path\n");
     fprintf(stderr, "example: waxsim -s 2.2 /path/to/app.app\n");
     fprintf(stderr, "Available options are:\n");    
-    fprintf(stderr, "\t-s sdk\tVersion number of sdk to use (-s 3.1)\n");        
-    fprintf(stderr, "\t-f family\tDevice to use (-f ipad)\n");
-    fprintf(stderr, "\t-e VAR=value\tEnvironment variable to set (-e CFFIXED_HOME=/tmp/iphonehome)\n");
-    fprintf(stderr, "\t-a \tAvailable SDKs\n");
-    fprintf(stderr, "\t-v path\tOutput video recording at path\n");
-    fprintf(stderr, "\t-h \tPrints out this wonderful documentation!\n");    
+    fprintf(stderr, " -s sdk\t\tVersion number of sdk to use (-s 3.1)\n");
+    fprintf(stderr, " -f family\tDevice to use (-f ipad)\n");
+    fprintf(stderr, " -e VAR=value\tEnvironment variable to set (-e CFFIXED_HOME=/tmp/iphonehome)\n");
+    fprintf(stderr, " -a \t\tAvailable SDKs\n");
+    fprintf(stderr, " -v path\tOutput video recording at path\n");
+    fprintf(stderr, " -q \t\tQuit and exit app after 3 seconds!\n");
+    fprintf(stderr, " -h \t\tPrints out this help message.\n");
 }
 
 void resetSignal(int sig) {
